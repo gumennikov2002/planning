@@ -1,0 +1,135 @@
+:root {
+    --main-color: #40b940;
+    --secondary-color: #e7e7e7;
+}
+
+@font-face {
+    font-family: 'Gotham';
+    src: url("../fonts/gothampro.ttf");
+}
+
+* {
+    font-family: 'Gotham', sans-serif;
+}
+
+#logo {
+    text-align: center;
+    color: var(--main-color);
+    font-size: 18px;
+    border-radius: 20px;
+}
+
+#app {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+table#planningTable {
+    font-size: 12px;
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+table#planningTable tbody tr {
+    box-shadow: 0 -1px 0 var(--secondary-color) inset;
+    margin-bottom: 0;
+}
+
+table#planningTable td.date {
+    padding: 10px 40px;
+    border: 1px solid var(--secondary-color);
+    border-bottom: 2px solid var(--secondary-color);
+    /*border-bottom: none;*/
+}
+
+table#planningTable td.executor {
+    text-align: center;
+    padding: 30px 30px;
+    background: var(--main-color);
+    color: #fff;
+    border-bottom: 1px solid var(--secondary-color);
+}
+
+#backlog {
+    margin-left: 20px;
+    width: 100%;
+    padding: 0 20px;
+    padding-bottom: 30px;
+    border: 1px solid var(--secondary-color);
+}
+
+#backlog h3 {
+    text-align: center;
+}
+
+#backlog .search {
+    display: flex;
+}
+
+#backlog .search input#backlogSearch {
+    padding: 10px 5px;
+    width: 100%;
+    border: 1px solid var(--secondary-color);
+}
+
+#backlog .search button#backlogSearchButton {
+    border: 1px solid var(--secondary-color);
+    background: var(--main-color);
+    color: #fff;
+    padding: 0 20px;
+}
+
+#backlog .empty {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#backlog .ticket {
+    /*width: 100%;*/
+    min-height: 40px;
+    margin-top: 20px;
+    padding: 10px;
+    background: #fafafa;
+    border: 1px solid var(--secondary-color);
+}
+
+#backlog .title {
+    color: var(--main-color);
+}
+
+#backlog .description {
+    padding-top: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+    table#planningTable td.date {
+        padding: 10px 20px;
+    }
+}
+
+@media screen and (max-width: 960px) {
+    #app {
+        flex-direction: column;
+    }
+
+    table#planningTable {
+        width: 100%;
+    }
+
+    table#planningTable td.date {
+        padding: 10px 40px;
+    }
+
+    #backlog {
+        margin-left: 0;
+        margin-top: 20px;
+        box-sizing: border-box;
+    }
+}
+
+@media screen and (max-width: 720px) {
+    table#planningTable td.date {
+        padding: 10px 20px;
+    }
+}
