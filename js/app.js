@@ -42,7 +42,7 @@ class App {
         });
 
         rows.forEach((row) => {
-            for (let i = 0; i < countDays; i++) {
+            for (let i = 0; i < countDays + 1; i++) {
                 row.innerHTML += `
                     <td data-executor-id="${row.getAttribute('data-executor-id')}" data-date="${datesCollection[i]}"></td>
                 `;
@@ -89,7 +89,7 @@ class App {
 
                 if (ticket.executor === null) {
                     backlog.innerHTML += `
-                        <div class="ticket" data-ticket-id="${ticket.id}">
+                        <div class="ticket" data-ticket-id="${ticket.id}" data-ticket-subject="${ticket.subject}" data-ticket-description="${ticket.description}" data-ticket-plan-start-date="${ticket.planStartDate}" data-ticket-plan-end-date="${ticket.planEndDate}" draggable="true">
                             <div class="header">
                                 <div class="title">${ticket.subject}</div>
                                 <div class="creation-date">${creationDate}</div>
@@ -106,30 +106,28 @@ class App {
                     let executorTableRow = tableBody.querySelector(`[data-executor-id="${ticket.executor}"]`);
                     let tableCells = executorTableRow.querySelectorAll('td');
                     let datesRange = this.getDateRange(new Date(ticket.planStartDate), new Date(ticket.planEndDate));
-console.log(ticket)
+
                     if (datesRange.length > 0) {
                         datesRange.forEach((date) => {
                             tableCells.forEach((cell) => {
                                 let cellDate = cell.getAttribute('data-date');
 
                                 if (cellDate === date) {
-                                    console.log(cell)
-                                    cell.style.backgroundColor = '#A1D8A2';
+                                    cell.classList.add('active');
 
                                     if (cell.innerHTML !== '') {
                                         cell.innerHTML += ', ' + ticket.subject;
                                     } else {
                                         cell.innerHTML = ticket.subject;
                                     }
-                                    // cell.innerHTML = ticket.subject;
                                 }
                             });
                         });
                     }
                 }
             });
+            this.initDragDrop();
         });
-
     }
 
     api = async (url) => {
@@ -151,18 +149,81 @@ console.log(ticket)
         return date.split('.').reverse().join('-');
     }
 
+    getIncreasedDatesRange = (date, increasedBy) => {
+        increasedBy -= 1;
+        let firstDate = new Date(date);
+        let lastDate = new Date(date);
+        lastDate = new Date(lastDate.setDate(lastDate.getDate() + increasedBy));
+
+        return this.getDateRange(firstDate, lastDate);
+    }
+
     getDateRange = (startDate, endDate) => {
-        const dates = []
-        let currentDate = startDate
+        const dates = [];
+        let currentDate = startDate;
         const addDays = function (days) {
-            const date = new Date(this.valueOf())
-            date.setDate(date.getDate() + days)
-            return date
+            const date = new Date(this.valueOf());
+            date.setDate(date.getDate() + days);
+            return date;
         }
         while (currentDate <= endDate) {
-            dates.push(currentDate.toLocaleDateString())
-            currentDate = addDays.call(currentDate, 1)
+            dates.push(currentDate.toLocaleDateString());
+            currentDate = addDays.call(currentDate, 1);
         }
-        return dates
+        return dates;
+    }
+
+    initDragDrop = () => {
+        const backlog = document.getElementById('backlog');
+        const tableRows = document.querySelectorAll('#planningTable tbody td');
+        const tickets = document.querySelectorAll('.ticket');
+
+        tableRows.forEach((row) => {
+            row.ondragover = (e) => {
+                e.preventDefault();
+            }
+        });
+
+        tickets.forEach((ticket) => {
+            ticket.ondragstart = (e) => {
+                e.dataTransfer.setData('data-ticket-id', e.target.getAttribute('data-ticket-id'));
+            }
+        });
+
+        tableRows.forEach((row) => {
+            row.ondrop = (e) => {
+                let itemId = e.dataTransfer.getData('data-ticket-id');
+                let dropElem = document.querySelector(`[data-ticket-id="${itemId}"]`);
+                let daysRange = this.getDateRange(new Date(dropElem.getAttribute('data-ticket-plan-start-date')), new Date(dropElem.getAttribute('data-ticket-plan-end-date')));
+                let dayStart;
+
+                if (e.target.classList.contains('executor')) {
+                    dayStart = dropElem.getAttribute('data-ticket-plan-start-date');
+                } else {
+                    dayStart = this.americanDateFormat(e.target.getAttribute('data-date'));
+                }
+
+                let datesRange = this.getIncreasedDatesRange(dayStart, daysRange.length);
+
+                setCells(datesRange);
+
+                function setCells(datesRange) {
+                    datesRange.forEach((date) => {
+                        let cell = e.target.parentNode.querySelector(`[data-date="${date}"]`);
+                        if (cell.classList.contains('active')) {
+                            cell.innerHTML += ', ' + dropElem.getAttribute('data-ticket-subject');
+                        } else {
+                            cell.classList.add('active');
+                            cell.innerHTML = dropElem.getAttribute('data-ticket-subject');
+                        }
+                    });
+                    dropElem.parentNode.removeChild(dropElem);
+                }
+            }
+        });
+    }
+
+    backlogSearch = (text) => {
+
     }
 }
