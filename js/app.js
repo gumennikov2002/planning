@@ -10,6 +10,8 @@ class App {
         this.renderExecutors();
         this.renderDateTabs();
         this.renderTickets();
+        this.initScroll();
+        this.turnOffPreloader();
     }
 
     renderExecutors = () => {
@@ -43,8 +45,9 @@ class App {
 
         rows.forEach((row) => {
             for (let i = 0; i < countDays + 1; i++) {
+                const executorId = row.getAttribute('data-executor-id');
                 row.innerHTML += `
-                    <td data-executor-id="${row.getAttribute('data-executor-id')}" data-date="${datesCollection[i]}"></td>
+                    <td data-executor-id="${executorId}" data-date="${datesCollection[i]}"></td>
                 `;
             }
         });
@@ -52,11 +55,12 @@ class App {
 
     renderDateTabs = () => {
         const tableHead = this.table.querySelector('thead tr');
-        let date = new Date();
-        let currentYear = date.getFullYear();
-        let currentMonth = date.getMonth();
-        let currentDay = date.getDate();
-        let dates = this.getDaysInMonth(currentDay, currentMonth, currentYear);
+        const date = new Date();
+        const currentYear = date.getFullYear();
+        const currentMonth = date.getMonth();
+        const currentDay = date.getDate();
+        const dates = this.getDaysInMonth(currentDay, currentMonth, currentYear);
+
         let datesRow = [
             '<td id="logo">Planner++</td>'
         ];
@@ -78,7 +82,6 @@ class App {
     }
 
     renderTickets = () => {
-        const tableBody = this.table.getElementsByTagName('tbody')[0];
         const backlog = document.getElementById('backlog');
         const responseAPI = this.api(this.ticketsAPI);
 
@@ -103,9 +106,9 @@ class App {
 
                 if (ticket.executor) {
                     const tableBody = this.table.getElementsByTagName('tbody')[0];
-                    let executorTableRow = tableBody.querySelector(`[data-executor-id="${ticket.executor}"]`);
-                    let tableCells = executorTableRow.querySelectorAll('td');
-                    let datesRange = this.getDateRange(new Date(ticket.planStartDate), new Date(ticket.planEndDate));
+                    const executorTableRow = tableBody.querySelector(`[data-executor-id="${ticket.executor}"]`);
+                    const tableCells = executorTableRow.querySelectorAll('td');
+                    const datesRange = this.getDateRange(new Date(ticket.planStartDate), new Date(ticket.planEndDate));
 
                     if (datesRange.length > 0) {
                         datesRange.forEach((date) => {
@@ -114,18 +117,33 @@ class App {
 
                                 if (cellDate === date) {
                                     cell.classList.add('active');
+                                    cell.classList.add('tooltip_element');
 
                                     if (cell.innerHTML !== '') {
-                                        cell.innerHTML += ', ' + ticket.subject;
+                                        cell.innerHTML += '<br><hr>' + ticket.subject;
                                     } else {
                                         cell.innerHTML = ticket.subject;
                                     }
+                                    cell.innerHTML += `<div class="tooltip_info"></div>`;
+
+                                    const tooltipInfo = cell.getElementsByClassName('tooltip_info')[0];
+                                    tooltipInfo.innerHTML += `
+                                        <p>
+                                            ${ticket.subject}
+                                            <hr>
+                                            ${ticket.description} <br><br>
+                                            Планируемая дата начала: ${new Date(ticket.planStartDate).toLocaleDateString()} <br><br>
+                                            Планируемая дата завершения: ${new Date(ticket.planEndDate).toLocaleDateString()} <br><br>
+                                        </p> <br>
+                                    `;
+
                                 }
                             });
                         });
                     }
                 }
             });
+            this.initBacklogSearch();
             this.initDragDrop();
         });
     }
@@ -174,7 +192,6 @@ class App {
     }
 
     initDragDrop = () => {
-        const backlog = document.getElementById('backlog');
         const tableRows = document.querySelectorAll('#planningTable tbody td');
         const tickets = document.querySelectorAll('.ticket');
 
@@ -205,25 +222,116 @@ class App {
 
                 let datesRange = this.getIncreasedDatesRange(dayStart, daysRange.length);
 
-                setCells(datesRange);
-
-                function setCells(datesRange) {
+                const setCells = (datesRange) => {
                     datesRange.forEach((date) => {
                         let cell = e.target.parentNode.querySelector(`[data-date="${date}"]`);
+                        let ticketSubject = dropElem.getAttribute('data-ticket-subject');
+                        let ticketDescription = dropElem.getAttribute('data-ticket-description');
+                        let ticketStart = datesRange[0];
+                        let ticketEnd = datesRange[datesRange.length - 1];
                         if (cell.classList.contains('active')) {
-                            cell.innerHTML += ', ' + dropElem.getAttribute('data-ticket-subject');
+                            cell.innerHTML += '<br><hr>' + ticketSubject;
                         } else {
                             cell.classList.add('active');
-                            cell.innerHTML = dropElem.getAttribute('data-ticket-subject');
+                            cell.innerHTML = ticketSubject;
                         }
+
+                        cell.classList.add('tooltip_element');
+                        cell.innerHTML += `<div class="tooltip_info"></div>`;
+                        let tooltipInfo = cell.getElementsByClassName('tooltip_info')[0];
+                        tooltipInfo.innerHTML += `
+                            <p>
+                                ${ticketSubject}
+                                <hr>
+                                ${ticketDescription} <br><br>
+                                Планируемая дата начала: ${ticketStart} <br><br>
+                                Планируемая дата завершения: ${ticketEnd} <br><br>
+                            </p> <br>
+                        `;
                     });
                     dropElem.parentNode.removeChild(dropElem);
                 }
+                setCells(datesRange);
             }
         });
     }
 
-    backlogSearch = (text) => {
+    initBacklogSearch = () => {
+        const searchField = document.getElementById('backlogSearchField');
+        const searchButton = document.getElementById('backlogSearchButton');
+        const tickets = document.getElementsByClassName('ticket');
 
+        searchButton.addEventListener('click', () => {
+            search();
+        })
+
+        searchField.addEventListener('keyup', (e) => {
+            if (e.code === 'Enter') {
+                search();
+            }
+        })
+
+        const search = () => {
+            let value = searchField.value;
+
+            for (let ticket of tickets) {
+                let ticketTitle = ticket.getAttribute('data-ticket-subject');
+                if (!ticketTitle.split(' ').includes(value)) {
+                    ticket.classList.add('hidden');
+                } else {
+                    ticket.classList.remove('hidden');
+                }
+
+                if (value === '') {
+                    ticket.classList.remove('hidden');
+                }
+            }
+        }
+    }
+
+    initScroll = () => {
+        const table = this.table;
+        let isPressed = false;
+        let startX;
+        let startY;
+        let scrollLeft;
+        let scrollTop;
+
+
+        table.addEventListener('mousedown', (e) => {
+            isPressed = true;
+            startX = e.pageX - table.offsetLeft;
+            startY = e.pageY - table.offsetTop;
+            scrollLeft = table.scrollLeft;
+            scrollTop = table.scrollTop
+        });
+
+        table.addEventListener('mouseleave', () => {
+            isPressed = false;
+        });
+
+        table.addEventListener('mouseup', () => {
+            isPressed = false;
+        });
+
+        table.addEventListener('mousemove', (e) => {
+            if (!isPressed) return;
+            e.preventDefault();
+            const x = e.pageX - table.offsetLeft;
+            const y = e.pageY - table.offsetTop;
+            const moveX = x - startX;
+            const moveY = y - startY;
+            table.scrollLeft = scrollLeft - moveX;
+            table.scrollTop = scrollTop - moveY;
+        });
+    }
+
+    turnOffPreloader = () => {
+        const preloader = document.getElementById('preloader');
+        document.onreadystatechange = () => {
+            if (document.readyState === 'complete') {
+                preloader.classList.add('animate-out');
+            }
+        }
     }
 }
